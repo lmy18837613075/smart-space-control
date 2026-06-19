@@ -1,0 +1,29 @@
+# Arduino/ESP32
+*.bin
+*.elf
+*.hex
+*.map
+*.o
+*.d
+*.sym
+build/
+.pio/
+.vscode/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+secrets.h
+config.h
+
+# Logs
+*.log
