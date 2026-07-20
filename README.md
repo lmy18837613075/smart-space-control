@@ -43,7 +43,6 @@ AIGC:
 - 📊 **数据可视化** - Chart.js 动态图表，数据一目了然
 - 🔔 **状态推送** - MQTT 实时推送，设备离线自动告警
 - 🎨 **OLED 显示** - 双色 OLED 屏幕显示状态 + 像素动画
-- 🐱 **彩蛋功能** - 内置月薪喵"散味舞"像素动画
 
 ## 📸 效果展示
 
@@ -135,10 +134,10 @@ const char* mqtt_server = "YOUR_BROKER_IP";
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/status` | 系统状态 |
-| GET | `/sensors/latest` | 最新传感器数据 |
-| GET | `/sensors/history?hours=24` | 历史数据（默认24小时） |
-| POST | `/devices/control` | 设备控制（开/关） |
+| GET | `/api/status` | 系统状态 |
+| GET | `/api/sensors/latest` | 最新传感器数据 |
+| GET | `/api/sensors/history?hours=24` | 历史数据（默认24小时） |
+| POST | `/api/devices/control` | 设备控制（开/关） |
 
 ## ⚠️ 常见问题
 
@@ -166,12 +165,6 @@ const char* mqtt_server = "YOUR_BROKER_IP";
 2. 用 ESP32 自建 AP 模式（代码已支持）
 3. 买个便携路由器（推荐）
 </details>
-
-## 🎁 彩蛋功能
-
-内置 **月薪喵"散味舞"** 像素动画！在 OLED 上显示可爱的猫咪扇风动作 🐱💨
-
-![月薪喵动画](docs/mao_preview.png)
 
 ## 📚 技术栈
 
