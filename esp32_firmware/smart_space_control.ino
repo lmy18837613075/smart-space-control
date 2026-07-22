@@ -5,9 +5,8 @@
     - DHT11 温湿度传感器 (GPIO21)
     - 继电器控制 (GPIO27)
     - 光敏传感器 (GPIO34, ADC)
-    - PIR 人体感应 (GPIO32)
+    - 光遮断传感器 (GPIO32) - 替代PIR
     - 有源蜂鸣器 (GPIO25)
-    - DS3231 RTC 时钟 (GPIO18/19, I2C 0x68)
     - OLED 显示 (GPIO18/19, I2C 0x3C)
 
   MQTT 主题：
@@ -20,13 +19,15 @@
 #include <PubSubClient.h>
 #include <DHT.h>
 #include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 // === WiFi 配置（上传前请修改）===
 const char* ssid = "YOUR_WIFI_SSID";
 const char* pass = "YOUR_WIFI_PASSWORD";
 
 // === MQTT 配置 ===
-const char* mqtt_server = "YOUR_BROKER_IP";
+const char* mqtt_server = "YOUR_SERVER_IP";
 const int mqtt_port = 1883;
 char mqtt_client_id[32];
 
@@ -43,6 +44,12 @@ const char* topic_status  = "esp32/status";
 #define PIR_PIN    32
 #define BUZZER_PIN 25
 
+// === OLED ===
+#define SCREEN_W 128
+#define SCREEN_H 64
+#define OLED_RST -1
+Adafruit_SSD1306 oled(SCREEN_W, SCREEN_H, &Wire, OLED_RST);
+
 // === 全局对象 ===
 WiFiClient espClient;
 PubSubClient mqtt(espClient);
@@ -50,7 +57,7 @@ DHT dht(DHT_PIN, DHT_TYPE);
 
 // === 状态 ===
 unsigned long lastSend = 0;
-const unsigned long SEND_INTERVAL = 5000;
+const unsigned long SEND_INTERVAL = 2000;
 bool relayState = false;
 bool lastMotion = false;
 
@@ -86,6 +93,45 @@ void publishStatus()
   mqtt.publish(topic_status, p);
 }
 
+// === OLED 显示 ===
+void updateOLED(float t, float h, int light, bool motion)
+{
+  oled.clearDisplay();
+  oled.setTextColor(SSD1306_WHITE);
+
+  // 第一行：标题
+  oled.setTextSize(1);
+  oled.setCursor(0, 0);
+  oled.print(F("Smart Space v3.0"));
+
+  // 第二行：温湿度
+  oled.setCursor(0, 12);
+  oled.print(F("T:"));
+  oled.print(t, 1);
+  oled.print(F("C  H:"));
+  oled.print(h, 0);
+  oled.print(F("%"));
+
+  // 第三行：亮度 + 人体感应
+  oled.setCursor(0, 24);
+  int pct = map(light, 0, 4095, 0, 100);
+  oled.print(F("Light:"));
+  oled.print(pct);
+  oled.print(F("% "));
+  oled.print(motion ? F("[!]Motion") : F("    -"));
+
+  // 第四行：MQTT状态
+  oled.setCursor(0, 36);
+  oled.print(mqtt.connected() ? F("MQTT: OK") : F("MQTT: Lost"));
+
+  // 第五行：继电器状态
+  oled.setCursor(0, 48);
+  oled.print(F("Relay:"));
+  oled.print(relayState ? F("ON ") : F("OFF"));
+
+  oled.display();
+}
+
 // === 发布传感器数据 ===
 void publishSensors()
 {
@@ -93,6 +139,9 @@ void publishSensors()
   float h = dht.readHumidity();
   int light = analogRead(LIGHT_PIN);
   bool motion = digitalRead(PIR_PIN);
+
+  // 更新OLED显示
+  updateOLED(t, h, light, motion);
 
   if (t > 35.0 && !isnan(t))
   {
@@ -184,6 +233,8 @@ void connectMqtt()
     if (mqtt.connect(mqtt_client_id))
     {
       Serial.println(" OK!");
+      static int retryDelay = 5000;
+      retryDelay = 5000;
       mqtt.subscribe(topic_control);
       publishStatus();
     }
@@ -191,7 +242,10 @@ void connectMqtt()
     {
       Serial.print(" rc=");
       Serial.println(mqtt.state());
-      delay(3000);
+      // 退避重连：5s -> 10s -> 15s 循环
+      static int retryDelay = 5000;
+      delay(retryDelay);
+      retryDelay = retryDelay >= 15000 ? 5000 : retryDelay + 5000;
     }
   }
 }
@@ -218,6 +272,25 @@ void setup()
 
   dht.begin();
 
+  // OLED初始化 (指定I2C引脚 GPIO18=SDA, GPIO19=SCL)
+  Wire.begin(18, 19);
+  if (!oled.begin(SSD1306_SWITCHCAPVCC, 0x3C))
+  {
+    Serial.println("[OLED] Failed! Check I2C wiring.");
+  }
+  else
+  {
+    oled.clearDisplay();
+    oled.setTextSize(1);
+    oled.setTextColor(SSD1306_WHITE);
+    oled.setCursor(0, 24);
+    oled.print(F("Smart Space v3.0"));
+    oled.setCursor(0, 36);
+    oled.print(F("Connecting WiFi..."));
+    oled.display();
+    Serial.println("[OLED] OK!");
+  }
+
   Serial.print("[WiFi] ");
   Serial.print(ssid);
   WiFi.begin(ssid, pass);
@@ -230,6 +303,7 @@ void setup()
   }
   if (WiFi.status() == WL_CONNECTED)
   {
+    WiFi.setSleep(false);
     Serial.println(" OK!");
     Serial.print("[WiFi] IP: ");
     Serial.println(WiFi.localIP());
@@ -241,9 +315,20 @@ void setup()
   }
 
   mqtt.setServer(mqtt_server, mqtt_port);
+  mqtt.setKeepAlive(30);
   mqtt.setCallback(onMqttMessage);
   mqtt.setBufferSize(512);
   connectMqtt();
+
+  // WiFi连上后更新OLED
+  oled.clearDisplay();
+  oled.setTextSize(1);
+  oled.setCursor(0, 24);
+  oled.print(F("WiFi Connected!"));
+  oled.setCursor(0, 36);
+  oled.print(WiFi.localIP());
+  oled.display();
+  delay(2000);
 
   Serial.println("[System] Ready!");
 }
