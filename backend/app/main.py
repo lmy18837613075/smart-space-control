@@ -23,17 +23,17 @@ async def lifespan(app: FastAPI):
     await database.init_db()
     mqtt_subscriber.start_mqtt()
     print("\n" + "=" * 50)
-    print("  Smart Space Control v3.0")
-    print("  Frontend: http://localhost:8000")
-    print("  API:      http://localhost:8000/api")
+    print("  智能空间控制系统 v3.0")
+    print("  前端页面: http://localhost:8000")
+    print("  API 接口: http://localhost:8000/api")
     print("=" * 50 + "\n")
     yield
     mqtt_subscriber.stop_mqtt()
 
 
 app = FastAPI(
-    title="Smart Space Control",
-    description="ESP32 + MQTT + FastAPI IoT System",
+    title="智能空间控制系统",
+    description="ESP32 + MQTT + FastAPI 物联网系统",
     version="3.0.0",
     lifespan=lifespan
 )
@@ -52,15 +52,15 @@ app.add_middleware(
 @app.get("/api")
 async def root():
     return {
-        "name": "Smart Space Control API",
+        "name": "智能空间控制系统 API",
         "version": "3.0.0",
         "endpoints": {
-            "/api/status": "System status",
-            "/api/sensors/latest": "Latest sensor data",
-            "/api/sensors/history": "Historical data",
-            "/api/devices/status": "Device state",
-            "/api/devices/control": "Send control command (POST)",
-            "/api/devices/beep": "Test buzzer (POST)"
+            "/api/status": "系统状态",
+            "/api/sensors/latest": "最新传感器数据",
+            "/api/sensors/history": "历史数据",
+            "/api/devices/status": "设备状态",
+            "/api/devices/control": "发送控制指令 (POST)",
+            "/api/devices/beep": "测试蜂鸣器 (POST)"
         }
     }
 
@@ -84,7 +84,7 @@ async def get_latest(device_id: str = None):
     reading = await database.get_latest_reading(device_id)
     if reading:
         return {"status": "ok", "data": reading}
-    return {"status": "ok", "data": None, "message": "No data yet"}
+    return {"status": "ok", "data": None, "message": "暂无数据"}
 
 
 @app.get("/api/sensors/history")
@@ -107,32 +107,31 @@ async def control_device(cmd: DeviceCommand):
         "channel": cmd.channel
     })
     if success:
-        return {"status": "ok", "message": f"Sent: {cmd.command}"}
-    return {"status": "error", "message": "MQTT not connected"}
+        return {"status": "ok", "message": f"已发送: {cmd.command}"}
+    return {"status": "error", "message": "MQTT 未连接"}
 
 
 @app.post("/api/devices/beep")
 async def beep_device():
-    """测试蜂鸣器"""
     success = mqtt_subscriber.publish_command({
         "device_id": "esp32_001",
         "beep": "test"
     })
     if success:
-        return {"status": "ok", "message": "Beep sent"}
-    return {"status": "error", "message": "MQTT not connected"}
+        return {"status": "ok", "message": "蜂鸣测试已发送"}
+    return {"status": "error", "message": "MQTT 未连接"}
 
 
-# ===== 前端服务 =====
+# ===== Frontend =====
 
-FRONTEND_DIR = Path(__file__).parent.parent.parent / "frontend"
+FRONTEND_DIR = Path(__file__).parent.parent
 
 @app.get("/")
 async def serve_index():
     index_path = FRONTEND_DIR / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
-    return {"message": "Smart Space Control API is running!"}
+    return {"message": "智能空间控制系统 API 运行中!"}
 
 
 @app.get("/favicon.ico")
