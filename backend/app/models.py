@@ -15,5 +15,5 @@ class StatusResponse(BaseModel):
 
 class DeviceCommand(BaseModel):
     device_id: str = "esp32_001"
-    command: str  # "on" or "off"
+    command: str
     channel: int = 1
