@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Space</title>
+    <title>智能空间</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -271,14 +271,14 @@
     <div class="container">
         <div class="topbar">
             <div class="topbar-left">
-                <h1 id="greeting">Smart Space</h1>
+                <h1 id="greeting">智能空间</h1>
                 <div class="sub">
                     <span class="dot" id="mqttDot"></span>
-                    <span id="statusText">Connecting</span>
+                    <span id="statusText">连接中</span>
                     <span style="margin-left:8px;color:var(--text-3)">|</span>
                     <span id="uptime" style="margin-left:8px">--</span>
                     <span style="margin-left:8px;color:var(--text-3)">|</span>
-                    <span id="count" style="margin-left:8px">0</span> records
+                    <span id="count" style="margin-left:8px">0</span> 条记录
                 </div>
             </div>
             <div class="topbar-right">
@@ -289,34 +289,34 @@
 
         <!-- Sensors -->
         <div class="card">
-            <div class="card-label">Environment</div>
+            <div class="card-label">传感器数据</div>
             <div class="sensor-grid">
                 <div class="sensor-item">
-                    <div class="num" id="tempVal">--<span class="unit">C</span></div>
-                    <div class="name">Temp</div>
+                    <div class="num" id="tempVal">--<span class="unit">°C</span></div>
+                    <div class="name">温度</div>
                 </div>
                 <div class="sensor-item">
                     <div class="num" id="humVal">--<span class="unit">%</span></div>
-                    <div class="name">Humidity</div>
+                    <div class="name">湿度</div>
                 </div>
                 <div class="sensor-item">
                     <div class="num" id="lightVal">--<span class="unit">%</span></div>
-                    <div class="name">Light</div>
+                    <div class="name">亮度</div>
                 </div>
                 <div class="sensor-item" id="motionCard">
                     <div class="num" id="motionVal" style="font-size:20px">--</div>
-                    <div class="name">Motion</div>
+                    <div class="name">人体感应</div>
                 </div>
             </div>
-            <div class="sensor-time" id="updateTime">Waiting for data</div>
+            <div class="sensor-time" id="updateTime">等待数据...</div>
         </div>
 
         <!-- Device Control -->
         <div class="card">
             <div class="relay-card">
                 <div class="relay-left">
-                    <div class="relay-title">Device Control</div>
-                    <div class="relay-sub" id="relayMsg">Waiting for device</div>
+                    <div class="relay-title">设备控制</div>
+                    <div class="relay-sub" id="relayMsg">等待设备连接</div>
                 </div>
                 <div class="relay-right">
                     <span class="device-dot pending" id="deviceDot"></span>
@@ -328,7 +328,7 @@
 
         <!-- Chart -->
         <div class="card">
-            <div class="card-label">24h Trend</div>
+            <div class="card-label">24小时趋势</div>
             <div class="chart-box">
                 <canvas id="chart"></canvas>
             </div>
@@ -344,7 +344,6 @@
         let chart = null;
         let themeLocked = false;
 
-        // Theme
         function autoTheme() {
             const h = new Date().getHours();
             return (h >= 18 || h < 6) ? 'dark' : 'light';
@@ -371,10 +370,10 @@
         function setGreeting() {
             const h = new Date().getHours();
             const el = document.getElementById('greeting');
-            if (h >= 5 && h < 12) el.textContent = 'Good Morning';
-            else if (h >= 12 && h < 14) el.textContent = 'Good Afternoon';
-            else if (h >= 14 && h < 18) el.textContent = 'Good Evening';
-            else el.textContent = 'Good Night';
+            if (h >= 5 && h < 12) el.textContent = '早上好';
+            else if (h >= 12 && h < 14) el.textContent = '中午好';
+            else if (h >= 14 && h < 18) el.textContent = '下午好';
+            else el.textContent = '晚上好';
         }
 
         function tickClock() {
@@ -384,7 +383,6 @@
             document.getElementById('clock').textContent = str;
         }
 
-        // Chart
         function chartColors() {
             const dark = document.documentElement.getAttribute('data-theme') === 'dark';
             return dark ? {
@@ -423,11 +421,11 @@
                 data: {
                     labels: [],
                     datasets: [
-                        { label: 'Temp', data: [], borderColor: c.t, backgroundColor: c.tBg,
+                        { label: '温度', data: [], borderColor: c.t, backgroundColor: c.tBg,
                           fill: true, tension: 0.35, borderWidth: 1.5, pointRadius: 0, yAxisID: 'y' },
-                        { label: 'Humidity', data: [], borderColor: c.h, backgroundColor: c.hBg,
+                        { label: '湿度', data: [], borderColor: c.h, backgroundColor: c.hBg,
                           fill: true, tension: 0.35, borderWidth: 1.5, pointRadius: 0, yAxisID: 'y1' },
-                        { label: 'Light', data: [], borderColor: c.l, backgroundColor: c.lBg,
+                        { label: '亮度', data: [], borderColor: c.l, backgroundColor: c.lBg,
                           fill: true, tension: 0.35, borderWidth: 1, pointRadius: 0, yAxisID: 'y1',
                           borderDash: [4, 2] }
                     ]
@@ -444,7 +442,7 @@
                              grid: { color: c.grid }, border: { display: false } },
                         y: { ticks: { color: c.t, font: { size: 10 } },
                              grid: { color: c.grid }, border: { display: false },
-                             title: { display: true, text: 'C', color: c.t, font: { size: 10 } } },
+                             title: { display: true, text: '°C', color: c.t, font: { size: 10 } } },
                         y1: { ticks: { color: c.h, font: { size: 10 } },
                               grid: { drawOnChartArea: false }, border: { display: false },
                               title: { display: true, text: '%', color: c.h, font: { size: 10 } } }
@@ -453,18 +451,17 @@
             });
         }
 
-        // Data
         async function fetchStatus() {
             try {
                 const r = await fetch(API + '/status');
                 const d = await r.json();
                 document.getElementById('mqttDot').className = 'dot' + (d.mqtt_connected ? '' : ' off');
-                document.getElementById('statusText').textContent = d.mqtt_connected ? 'MQTT OK' : 'MQTT Lost';
+                document.getElementById('statusText').textContent = d.mqtt_connected ? 'MQTT 正常' : 'MQTT 断开';
                 document.getElementById('uptime').textContent = d.uptime;
                 document.getElementById('count').textContent = d.sensor_count;
             } catch {
                 document.getElementById('mqttDot').className = 'dot off';
-                document.getElementById('statusText').textContent = 'Backend offline';
+                document.getElementById('statusText').textContent = '后端离线';
             }
         }
 
@@ -474,22 +471,20 @@
                 const d = await r.json();
                 if (d.data) {
                     document.getElementById('tempVal').innerHTML =
-                        (d.data.temperature?.toFixed(1) ?? '--') + '<span class="unit">C</span>';
+                        (d.data.temperature?.toFixed(1) ?? '--') + '<span class="unit">°C</span>';
                     document.getElementById('humVal').innerHTML =
                         (d.data.humidity?.toFixed(0) ?? '--') + '<span class="unit">%</span>';
 
-                    // Light: convert 0-4095 to percentage
                     const lightRaw = d.data.light ?? 0;
                     const lightPct = Math.round(lightRaw / 4095 * 100);
                     document.getElementById('lightVal').innerHTML =
                         lightPct + '<span class="unit">%</span>';
 
-                    // Motion
                     const motion = d.data.motion;
                     const motionCard = document.getElementById('motionCard');
                     const motionVal = document.getElementById('motionVal');
                     if (motion === 1 || motion === true) {
-                        motionVal.textContent = 'YES';
+                        motionVal.textContent = '有人';
                         motionCard.classList.add('motion-active');
                     } else {
                         motionVal.textContent = '--';
@@ -497,7 +492,7 @@
                     }
 
                     document.getElementById('updateTime').textContent =
-                        'Updated ' + new Date(d.data.timestamp).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+                        '更新于 ' + new Date(d.data.timestamp).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
                 }
             } catch {}
         }
@@ -513,7 +508,6 @@
                 });
                 chart.data.datasets[0].data = d.data.map(x => x.temperature);
                 chart.data.datasets[1].data = d.data.map(x => x.humidity);
-                // Light: convert to percentage for chart
                 chart.data.datasets[2].data = d.data.map(x => Math.round((x.light || 0) / 4095 * 100));
                 chart.update('none');
             } catch {}
@@ -532,7 +526,7 @@
 
                 if (!state.online && !state.last_update) {
                     dotEl.className = 'device-dot off';
-                    msgEl.textContent = 'Device offline';
+                    msgEl.textContent = '设备离线';
                     return;
                 }
 
@@ -540,12 +534,12 @@
                     if (state.relay === (pendingCommand === 'on')) {
                         relayOn = state.relay;
                         switchEl.className = 'switch' + (relayOn ? ' on' : '');
-                        msgEl.textContent = relayOn ? 'ON' : 'OFF';
+                        msgEl.textContent = relayOn ? '已开启' : '已关闭';
                         dotEl.className = 'device-dot';
                         pendingCommand = null;
                     } else {
                         if (Date.now() - pendingTime > 5000) {
-                            msgEl.textContent = 'Timeout';
+                            msgEl.textContent = '超时';
                             dotEl.className = 'device-dot off';
                             pendingCommand = null;
                         }
@@ -554,7 +548,7 @@
                     relayOn = state.relay;
                     switchEl.className = 'switch' + (relayOn ? ' on' : '');
                     dotEl.className = 'device-dot';
-                    msgEl.textContent = relayOn ? 'ON' : 'OFF';
+                    msgEl.textContent = relayOn ? '已开启' : '已关闭';
                 }
             } catch {}
         }
@@ -575,12 +569,12 @@
                     pendingCommand = cmd;
                     pendingTime = Date.now();
                     dotEl.className = 'device-dot pending';
-                    msgEl.textContent = 'Switching...';
+                    msgEl.textContent = '切换中...';
                 } else {
                     msgEl.textContent = d.message;
                 }
             } catch {
-                msgEl.textContent = 'Backend offline';
+                msgEl.textContent = '后端离线';
             }
         }
 
@@ -590,7 +584,6 @@
             } catch {}
         }
 
-        // Init
         applyTheme(autoTheme());
         setGreeting();
         tickClock();
