@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能空间</title>
+    <title>Smart Space</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -15,14 +15,17 @@
             --text-1: #1a1a1a;
             --text-2: #999;
             --text-3: #ccc;
-            --accent: #1a1a1a;
             --green: #22c55e;
             --red: #ef4444;
             --orange: #f59e0b;
+            --blue: #3b82f6;
+            --purple: #a855f7;
             --chart-temp: #ef4444;
             --chart-temp-bg: rgba(239,68,68,0.06);
             --chart-hum: #3b82f6;
             --chart-hum-bg: rgba(59,130,246,0.06);
+            --chart-light: #f59e0b;
+            --chart-light-bg: rgba(245,158,11,0.06);
             --grid-line: rgba(0,0,0,0.04);
             --sensor-bg: #f7f7f7;
         }
@@ -34,14 +37,17 @@
             --text-1: #e8e8e8;
             --text-2: #777;
             --text-3: #444;
-            --accent: #e8e8e8;
             --green: #4ade80;
             --red: #f87171;
             --orange: #fbbf24;
+            --blue: #60a5fa;
+            --purple: #c084fc;
             --chart-temp: #f87171;
             --chart-temp-bg: rgba(248,113,113,0.08);
             --chart-hum: #60a5fa;
             --chart-hum-bg: rgba(96,165,250,0.08);
+            --chart-light: #fbbf24;
+            --chart-light-bg: rgba(251,191,36,0.08);
             --grid-line: rgba(255,255,255,0.04);
             --sensor-bg: #151515;
         }
@@ -131,33 +137,37 @@
 
         .sensor-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
         }
         .sensor-item {
             background: var(--sensor-bg);
             border-radius: 8px;
-            padding: 16px;
+            padding: 14px 10px;
             text-align: center;
             transition: background 0.3s;
         }
         .sensor-item .num {
-            font-size: 36px;
+            font-size: 28px;
             font-weight: 700;
             line-height: 1;
             letter-spacing: -1px;
         }
         .sensor-item .unit {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-2);
             font-weight: 400;
-            margin-left: 2px;
+            margin-left: 1px;
         }
         .sensor-item .name {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-3);
-            margin-top: 6px;
+            margin-top: 5px;
         }
+        .sensor-item.motion-active {
+            border: 1.5px solid var(--green);
+        }
+
         .sensor-time {
             text-align: center;
             font-size: 11px;
@@ -182,7 +192,7 @@
         .relay-right {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .device-dot {
@@ -215,7 +225,7 @@
             width: 18px; height: 18px;
             border-radius: 50%;
             background: #fff;
-            transition: transform 0.25s, background 0.25s;
+            transition: transform 0.25s;
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         .switch.on {
@@ -223,6 +233,24 @@
         }
         .switch.on::after {
             transform: translateX(20px);
+        }
+
+        .beep-btn {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--sensor-bg);
+            color: var(--text-2);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .beep-btn:hover {
+            border-color: var(--text-2);
+            color: var(--text-1);
+        }
+        .beep-btn:active {
+            transform: scale(0.95);
         }
 
         .chart-box {
@@ -233,6 +261,7 @@
         @media (max-width: 480px) {
             .container { padding: 0 16px 48px; }
             .topbar { padding: 20px 0 16px; }
+            .sensor-grid { grid-template-columns: 1fr 1fr; }
             .sensor-item .num { font-size: 28px; }
             .chart-box { height: 150px; }
         }
@@ -240,58 +269,66 @@
 </head>
 <body>
     <div class="container">
-        <!-- 顶栏 -->
         <div class="topbar">
             <div class="topbar-left">
-                <h1 id="greeting">智能空间</h1>
+                <h1 id="greeting">Smart Space</h1>
                 <div class="sub">
                     <span class="dot" id="mqttDot"></span>
-                    <span id="statusText">连接中</span>
-                    <span style="margin-left:8px;color:var(--text-3)">·</span>
+                    <span id="statusText">Connecting</span>
+                    <span style="margin-left:8px;color:var(--text-3)">|</span>
                     <span id="uptime" style="margin-left:8px">--</span>
-                    <span style="margin-left:8px;color:var(--text-3)">·</span>
-                    <span id="count" style="margin-left:8px">0</span> 条数据
+                    <span style="margin-left:8px;color:var(--text-3)">|</span>
+                    <span id="count" style="margin-left:8px">0</span> records
                 </div>
             </div>
             <div class="topbar-right">
                 <span class="meta" id="clock">--:--</span>
-                <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☾</button>
+                <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">&#9790;</button>
             </div>
         </div>
 
-        <!-- 传感器 -->
+        <!-- Sensors -->
         <div class="card">
-            <div class="card-label">环境监测</div>
+            <div class="card-label">Environment</div>
             <div class="sensor-grid">
                 <div class="sensor-item">
-                    <div class="num" id="tempVal">--<span class="unit">°C</span></div>
-                    <div class="name">温度</div>
+                    <div class="num" id="tempVal">--<span class="unit">C</span></div>
+                    <div class="name">Temp</div>
                 </div>
                 <div class="sensor-item">
                     <div class="num" id="humVal">--<span class="unit">%</span></div>
-                    <div class="name">湿度</div>
+                    <div class="name">Humidity</div>
+                </div>
+                <div class="sensor-item">
+                    <div class="num" id="lightVal">--<span class="unit">%</span></div>
+                    <div class="name">Light</div>
+                </div>
+                <div class="sensor-item" id="motionCard">
+                    <div class="num" id="motionVal" style="font-size:20px">--</div>
+                    <div class="name">Motion</div>
                 </div>
             </div>
-            <div class="sensor-time" id="updateTime">等待数据</div>
+            <div class="sensor-time" id="updateTime">Waiting for data</div>
         </div>
 
-        <!-- 继电器 -->
+        <!-- Device Control -->
         <div class="card">
             <div class="relay-card">
                 <div class="relay-left">
-                    <div class="relay-title" id="relayTitle">设备控制</div>
-                    <div class="relay-sub" id="relayMsg">等待设备上报状态</div>
+                    <div class="relay-title">Device Control</div>
+                    <div class="relay-sub" id="relayMsg">Waiting for device</div>
                 </div>
                 <div class="relay-right">
-                    <span class="device-dot pending" id="deviceDot" title="设备状态"></span>
+                    <span class="device-dot pending" id="deviceDot"></span>
                     <button class="switch" id="relaySwitch" onclick="toggleRelay()"></button>
+                    <button class="beep-btn" onclick="testBeep()">&#128264;</button>
                 </div>
             </div>
         </div>
 
-        <!-- 图表 -->
+        <!-- Chart -->
         <div class="card">
-            <div class="card-label">24 小时趋势</div>
+            <div class="card-label">24h Trend</div>
             <div class="chart-box">
                 <canvas id="chart"></canvas>
             </div>
@@ -299,17 +336,15 @@
     </div>
 
     <script>
-        // ===== 配置 =====
         const API = window.location.origin + '/api';
 
-        // ===== 状态 =====
         let relayOn = false;
         let pendingCommand = null;
         let pendingTime = 0;
         let chart = null;
         let themeLocked = false;
 
-        // ===== 主题 =====
+        // Theme
         function autoTheme() {
             const h = new Date().getHours();
             return (h >= 18 || h < 6) ? 'dark' : 'light';
@@ -319,10 +354,10 @@
             const btn = document.getElementById('themeBtn');
             if (t === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
-                btn.textContent = '☀';
+                btn.innerHTML = '&#9788;';
             } else {
                 document.documentElement.removeAttribute('data-theme');
-                btn.textContent = '☾';
+                btn.innerHTML = '&#9790;';
             }
             if (chart) { refreshChartColors(); chart.update('none'); }
         }
@@ -333,34 +368,34 @@
             applyTheme(isDark ? 'light' : 'dark');
         }
 
-        // ===== 问候语 =====
         function setGreeting() {
             const h = new Date().getHours();
             const el = document.getElementById('greeting');
-            if (h >= 5 && h < 12) el.textContent = '早上好';
-            else if (h >= 12 && h < 14) el.textContent = '中午好';
-            else if (h >= 14 && h < 18) el.textContent = '下午好';
-            else el.textContent = '晚上好';
+            if (h >= 5 && h < 12) el.textContent = 'Good Morning';
+            else if (h >= 12 && h < 14) el.textContent = 'Good Afternoon';
+            else if (h >= 14 && h < 18) el.textContent = 'Good Evening';
+            else el.textContent = 'Good Night';
         }
 
-        // ===== 时钟 =====
         function tickClock() {
             const now = new Date();
-            const str = now.getHours().toString().padStart(2,'0') + ':' +
-                        now.getMinutes().toString().padStart(2,'0');
+            const str = now.getHours().toString().padStart(2, '0') + ':' +
+                        now.getMinutes().toString().padStart(2, '0');
             document.getElementById('clock').textContent = str;
         }
 
-        // ===== 图表 =====
+        // Chart
         function chartColors() {
             const dark = document.documentElement.getAttribute('data-theme') === 'dark';
             return dark ? {
                 t: '#f87171', tBg: 'rgba(248,113,113,0.08)',
                 h: '#60a5fa', hBg: 'rgba(96,165,250,0.08)',
+                l: '#fbbf24', lBg: 'rgba(251,191,36,0.08)',
                 text: '#444', grid: 'rgba(255,255,255,0.04)', leg: '#666'
             } : {
                 t: '#ef4444', tBg: 'rgba(239,68,68,0.06)',
                 h: '#3b82f6', hBg: 'rgba(59,130,246,0.06)',
+                l: '#f59e0b', lBg: 'rgba(245,158,11,0.06)',
                 text: '#ccc', grid: 'rgba(0,0,0,0.04)', leg: '#999'
             };
         }
@@ -371,6 +406,8 @@
             chart.data.datasets[0].backgroundColor = c.tBg;
             chart.data.datasets[1].borderColor = c.h;
             chart.data.datasets[1].backgroundColor = c.hBg;
+            chart.data.datasets[2].borderColor = c.l;
+            chart.data.datasets[2].backgroundColor = c.lBg;
             chart.options.scales.x.ticks.color = c.text;
             chart.options.scales.x.grid.color = c.grid;
             chart.options.scales.y.ticks.color = c.t;
@@ -386,10 +423,13 @@
                 data: {
                     labels: [],
                     datasets: [
-                        { label: '温度', data: [], borderColor: c.t, backgroundColor: c.tBg,
+                        { label: 'Temp', data: [], borderColor: c.t, backgroundColor: c.tBg,
                           fill: true, tension: 0.35, borderWidth: 1.5, pointRadius: 0, yAxisID: 'y' },
-                        { label: '湿度', data: [], borderColor: c.h, backgroundColor: c.hBg,
-                          fill: true, tension: 0.35, borderWidth: 1.5, pointRadius: 0, yAxisID: 'y1' }
+                        { label: 'Humidity', data: [], borderColor: c.h, backgroundColor: c.hBg,
+                          fill: true, tension: 0.35, borderWidth: 1.5, pointRadius: 0, yAxisID: 'y1' },
+                        { label: 'Light', data: [], borderColor: c.l, backgroundColor: c.lBg,
+                          fill: true, tension: 0.35, borderWidth: 1, pointRadius: 0, yAxisID: 'y1',
+                          borderDash: [4, 2] }
                     ]
                 },
                 options: {
@@ -403,26 +443,28 @@
                         x: { ticks: { color: c.text, maxTicksLimit: 6, font: { size: 10 } },
                              grid: { color: c.grid }, border: { display: false } },
                         y: { ticks: { color: c.t, font: { size: 10 } },
-                             grid: { color: c.grid }, border: { display: false } },
+                             grid: { color: c.grid }, border: { display: false },
+                             title: { display: true, text: 'C', color: c.t, font: { size: 10 } } },
                         y1: { ticks: { color: c.h, font: { size: 10 } },
-                              grid: { drawOnChartArea: false }, border: { display: false } }
+                              grid: { drawOnChartArea: false }, border: { display: false },
+                              title: { display: true, text: '%', color: c.h, font: { size: 10 } } }
                     }
                 }
             });
         }
 
-        // ===== 数据获取 =====
+        // Data
         async function fetchStatus() {
             try {
                 const r = await fetch(API + '/status');
                 const d = await r.json();
                 document.getElementById('mqttDot').className = 'dot' + (d.mqtt_connected ? '' : ' off');
-                document.getElementById('statusText').textContent = d.mqtt_connected ? 'MQTT 已连接' : 'MQTT 断开';
+                document.getElementById('statusText').textContent = d.mqtt_connected ? 'MQTT OK' : 'MQTT Lost';
                 document.getElementById('uptime').textContent = d.uptime;
                 document.getElementById('count').textContent = d.sensor_count;
             } catch {
                 document.getElementById('mqttDot').className = 'dot off';
-                document.getElementById('statusText').textContent = '后端离线';
+                document.getElementById('statusText').textContent = 'Backend offline';
             }
         }
 
@@ -432,11 +474,30 @@
                 const d = await r.json();
                 if (d.data) {
                     document.getElementById('tempVal').innerHTML =
-                        (d.data.temperature?.toFixed(1) ?? '--') + '<span class="unit">°C</span>';
+                        (d.data.temperature?.toFixed(1) ?? '--') + '<span class="unit">C</span>';
                     document.getElementById('humVal').innerHTML =
                         (d.data.humidity?.toFixed(0) ?? '--') + '<span class="unit">%</span>';
+
+                    // Light: convert 0-4095 to percentage
+                    const lightRaw = d.data.light ?? 0;
+                    const lightPct = Math.round(lightRaw / 4095 * 100);
+                    document.getElementById('lightVal').innerHTML =
+                        lightPct + '<span class="unit">%</span>';
+
+                    // Motion
+                    const motion = d.data.motion;
+                    const motionCard = document.getElementById('motionCard');
+                    const motionVal = document.getElementById('motionVal');
+                    if (motion === 1 || motion === true) {
+                        motionVal.textContent = 'YES';
+                        motionCard.classList.add('motion-active');
+                    } else {
+                        motionVal.textContent = '--';
+                        motionCard.classList.remove('motion-active');
+                    }
+
                     document.getElementById('updateTime').textContent =
-                        '更新于 ' + new Date(d.data.timestamp).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+                        'Updated ' + new Date(d.data.timestamp).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
                 }
             } catch {}
         }
@@ -448,10 +509,12 @@
                 if (!d.data?.length) return;
                 chart.data.labels = d.data.map(x => {
                     const dt = new Date(x.timestamp);
-                    return dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
+                    return dt.getHours().toString().padStart(2, '0') + ':' + dt.getMinutes().toString().padStart(2, '0');
                 });
                 chart.data.datasets[0].data = d.data.map(x => x.temperature);
                 chart.data.datasets[1].data = d.data.map(x => x.humidity);
+                // Light: convert to percentage for chart
+                chart.data.datasets[2].data = d.data.map(x => Math.round((x.light || 0) / 4095 * 100));
                 chart.update('none');
             } catch {}
         }
@@ -469,7 +532,7 @@
 
                 if (!state.online && !state.last_update) {
                     dotEl.className = 'device-dot off';
-                    msgEl.textContent = '设备未上线';
+                    msgEl.textContent = 'Device offline';
                     return;
                 }
 
@@ -477,12 +540,12 @@
                     if (state.relay === (pendingCommand === 'on')) {
                         relayOn = state.relay;
                         switchEl.className = 'switch' + (relayOn ? ' on' : '');
-                        msgEl.textContent = relayOn ? '已开启' : '已关闭';
+                        msgEl.textContent = relayOn ? 'ON' : 'OFF';
                         dotEl.className = 'device-dot';
                         pendingCommand = null;
                     } else {
                         if (Date.now() - pendingTime > 5000) {
-                            msgEl.textContent = '设备响应超时';
+                            msgEl.textContent = 'Timeout';
                             dotEl.className = 'device-dot off';
                             pendingCommand = null;
                         }
@@ -491,7 +554,7 @@
                     relayOn = state.relay;
                     switchEl.className = 'switch' + (relayOn ? ' on' : '');
                     dotEl.className = 'device-dot';
-                    msgEl.textContent = relayOn ? '已开启' : '已关闭';
+                    msgEl.textContent = relayOn ? 'ON' : 'OFF';
                 }
             } catch {}
         }
@@ -512,16 +575,22 @@
                     pendingCommand = cmd;
                     pendingTime = Date.now();
                     dotEl.className = 'device-dot pending';
-                    msgEl.textContent = '执行中...';
+                    msgEl.textContent = 'Switching...';
                 } else {
                     msgEl.textContent = d.message;
                 }
             } catch {
-                msgEl.textContent = '后端离线';
+                msgEl.textContent = 'Backend offline';
             }
         }
 
-        // ===== 启动 =====
+        async function testBeep() {
+            try {
+                await fetch(API + '/devices/beep', { method: 'POST' });
+            } catch {}
+        }
+
+        // Init
         applyTheme(autoTheme());
         setGreeting();
         tickClock();

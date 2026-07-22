@@ -1,78 +1,98 @@
 """
-智能空间控制系统 - 数据库模块
-使用 aiosqlite 异步操作 SQLite，数据库文件: backend/data/smartspace.db
+智能空间控制系统 - 数据库模块 v3.0
+支持：温度、湿度、亮度、人体感应
 """
 
 import aiosqlite
-import os
+from datetime import datetime, timedelta
 
-# 数据库路径
-DB_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "smartspace.db"))
+DB_PATH = "data/smart_space.db"
 
 
 async def init_db():
     """初始化数据库表"""
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
-            CREATE TABLE IF NOT EXISTS sensor_data (
+            CREATE TABLE IF NOT EXISTS sensor_readings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 device_id TEXT NOT NULL,
                 temperature REAL,
                 humidity REAL,
+                light INTEGER DEFAULT 0,
+                motion INTEGER DEFAULT 0,
                 timestamp TEXT NOT NULL
             )
         """)
         await db.execute("""
             CREATE INDEX IF NOT EXISTS idx_device_time
-            ON sensor_data(device_id, timestamp)
+            ON sensor_readings(device_id, timestamp)
         """)
         await db.commit()
 
 
-async def save_sensor_reading(device_id, temperature, humidity, timestamp):
-    """保存一条传感器数据"""
+async def save_sensor_reading(device_id, temperature, humidity,
+                              light=0, motion=0, timestamp=None):
+    """保存传感器数据"""
+    if timestamp is None:
+        timestamp = datetime.now().isoformat()
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            "INSERT INTO sensor_data (device_id, temperature, humidity, timestamp) VALUES (?, ?, ?, ?)",
-            (device_id, temperature, humidity, timestamp)
+            """INSERT INTO sensor_readings
+               (device_id, temperature, humidity, light, motion, timestamp)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (device_id, temperature, humidity, light, motion, str(timestamp))
         )
         await db.commit()
 
 
 async def get_latest_reading(device_id=None):
-    """获取最新一条数据，device_id 为空则取全局最新"""
+    """获取最新一条传感器数据"""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         if device_id:
             cursor = await db.execute(
-                "SELECT * FROM sensor_data WHERE device_id = ? ORDER BY timestamp DESC LIMIT 1",
+                """SELECT * FROM sensor_readings
+                   WHERE device_id = ?
+                   ORDER BY timestamp DESC LIMIT 1""",
                 (device_id,)
             )
         else:
-            cursor = await db.execute("SELECT * FROM sensor_data ORDER BY timestamp DESC LIMIT 1")
+            cursor = await db.execute(
+                """SELECT * FROM sensor_readings
+                   ORDER BY timestamp DESC LIMIT 1"""
+            )
         row = await cursor.fetchone()
-        return dict(row) if row else None
+        if row:
+            return dict(row)
+        return None
 
 
 async def get_sensor_history(hours=24, device_id=None):
-    """获取最近 N 小时的历史数据，按时间升序"""
+    """获取历史数据"""
+    cutoff = (datetime.now() - timedelta(hours=hours)).isoformat()
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        query = "SELECT * FROM sensor_data WHERE timestamp >= datetime('now', ?)"
-        params = [f"-{hours} hours"]
         if device_id:
-            query += " AND device_id = ?"
-            params.append(device_id)
-        query += " ORDER BY timestamp ASC"
-        cursor = await db.execute(query, params)
+            cursor = await db.execute(
+                """SELECT * FROM sensor_readings
+                   WHERE device_id = ? AND timestamp >= ?
+                   ORDER BY timestamp ASC""",
+                (device_id, cutoff)
+            )
+        else:
+            cursor = await db.execute(
+                """SELECT * FROM sensor_readings
+                   WHERE timestamp >= ?
+                   ORDER BY timestamp ASC""",
+                (cutoff,)
+            )
         rows = await cursor.fetchall()
-        return [dict(row) for row in rows]
+        return [dict(r) for r in rows]
 
 
 async def get_sensor_count():
-    """获取数据总条数"""
+    """获取总数据条数"""
     async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute("SELECT COUNT(*) FROM sensor_data")
+        cursor = await db.execute("SELECT COUNT(*) FROM sensor_readings")
         row = await cursor.fetchone()
         return row[0] if row else 0
