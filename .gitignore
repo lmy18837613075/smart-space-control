@@ -8,3 +8,7 @@ dist/
 build/
 .venv/
 venv/
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
