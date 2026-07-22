@@ -1,198 +1,117 @@
----
-AIGC:
-    Label: "1"
-    ContentProducer: 001191110102MACQD9K64018705
-    ProduceID: 3112094242706266_0/project_7652161027991339304-files/smart-space-control/README_enhanced.md
-    ReservedCode1: ""
-    ContentPropagator: 001191110102MACQD9K64028705
-    PropagateID: 3112094242706266#1784548007868
-    ReservedCode2: ""
----
-<div align="center">
+# 智能空间控制系统 (Smart Space Control)
 
-# 🏠 Smart Space Control
+基于 **ESP32 + MQTT + FastAPI + Vue-free 前端** 的轻量物联网智能空间控制系统。
 
-**基于 ESP32 + MQTT + FastAPI 的开源智能空间控制系统**
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![ESP32](https://img.shields.io/badge/ESP32-Arduino-blue.svg)](https://docs.espressif.com/projects/arduino-esp32/)
-[![Python](https://img.shields.io/badge/Python-3.8+-green.svg)](https://www.python.org/)
-[![MQTT](https://img.shields.io/badge/MQTT-3.1.1-orange.svg)](http://mqtt.org/)
-
-**让宿舍/房间变智能，成本不到 100 块！**
-
-[快速开始](#快速开始) • [系统架构](#系统架构) • [功能特性](#功能特性) • [硬件清单](#硬件清单)
-
-</div>
-
----
-
-## ✨ 为什么选择这个项目？
-
-| 痛点 | 这个项目的解决方案 |
-|------|-------------------|
-| 商业智能设备太贵 | 💰 总成本 < ¥100，DIY 更省钱 |
-| 闭源系统不透明 | 🔓 100% 开源，代码可控 |
-| 功能受限难扩展 | 🔧 模块化设计，想加什么加什么 |
-| 学习门槛高 | 📚 详细文档 + 完整注释，新手友好 |
-
-## 🎯 功能特性
-
-- 🌡️ **实时监控** - 温湿度数据自动采集，历史曲线可视化
-- 💡 **远程控制** - 手机/电脑一键控制继电器（开灯/关风扇）
-- 📊 **数据可视化** - Chart.js 动态图表，数据一目了然
-- 🔔 **状态推送** - MQTT 实时推送，设备离线自动告警
-- 🎨 **OLED 显示** - 双色 OLED 屏幕显示状态 + 像素动画
-
-## 📸 效果展示
-
-> TODO: 添加系统运行截图/GIF
-
-## 🏗️ 系统架构
+## 系统架构
 
 ```
-┌─────────────┐     MQTT      ┌──────────────┐     HTTP      ┌─────────────┐
-│             │ ─────────────► │              │ ─────────────► │             │
-│   ESP32     │   esp32/       │   FastAPI    │                │   前端面板   │
-│  + DHT11    │   sensors      │   Backend    │ ◄───────────── │  (HTML/JS)  │
-│  + OLED     │ ◄───────────── │  + SQLite    │   /api/*       │             │
-│  + Relay    │   esp32/       │              │                │             │
-│             │   control      │              │                │             │
-└─────────────┘ ─────────────► └──────────────┘                └─────────────┘
-       ▲                               │
-       │                               ▼
-  物理设备控制                      数据存储层
-  (灯/风扇等)                     (SQLite DB)
+ESP32 (传感器/执行器)
+    ↕ MQTT (1883)
+本地 Broker (amqtt)
+    ↕
+FastAPI 后端 → SQLite 数据库
+    ↕ REST API
+前端页面 (index.html)
 ```
 
-## 🛒 硬件清单
+## 功能模块
 
-| 组件 | 型号/规格 | 参考价格 | 购买链接 |
-|------|-----------|----------|----------|
-| 主控板 | ESP32 Dev Module | ¥15-25 | 淘宝/拼多多 |
-| 温湿度传感器 | DHT11 | ¥3-5 | 淘宝 |
-| 继电器模块 | 5V 单路继电器 | ¥3-5 | 淘宝 |
-| OLED 屏幕 | 0.96" SSD1306 双色 | ¥10-15 | 淘宝 |
-| 杜邦线 | 母对母 若干 | ¥2 | 淘宝 |
-| **总计** | - | **< ¥50** | - |
+| 模块 | 说明 |
+|------|------|
+| 温湿度监测 | DHT11 传感器，2秒采样，实时上报 |
+| 光照检测 | 光敏电阻 ADC 采集，百分比换算 |
+| 人体感应 | 光遮断传感器（可替换 HC-SR501 PIR） |
+| 继电器控制 | 前端开关远程控制，状态双向同步 |
+| 蜂鸣器 | 温度报警（>35°C）+ 前端手动蜂鸣测试 |
+| OLED 显示 | 0.96寸 SSD1306，实时显示传感器状态 |
+| 数据可视化 | Chart.js 绘制 24h 温湿度/光照趋势图 |
+| 暗色主题 | 自动跟随时间切换，支持手动锁定 |
 
-## 🔌 接线图
+## 硬件清单
 
-```
-ESP32                    传感器/模块
-─────                    ──────────
-GPIO21 ───────────────── DHT11 DATA
-GPIO27 ───────────────── 继电器 IN
-GPIO18 ───────────────── OLED SDA
-GPIO19 ───────────────── OLED SCL
-3.3V   ───────────────── DHT11 VCC / OLED VCC
-VIN    ───────────────── 继电器 VCC
-GND    ───────────────── 所有 GND
-```
-
-> ⚠️ **注意**: GPIO27 不是 strapping pin，可安全连接继电器。避免使用 GPIO12 等 strapping pin。
-
-## 🚀 快速开始
-
-### 1. 安装后端依赖
-```bash
-cd smart-space-control/backend
-pip install -r requirements.txt
-```
-
-### 2. 启动 MQTT Broker
-```bash
-python local_broker.py
-```
-
-### 3. 启动后端服务
-```bash
-cd smart-space-control/backend
-python -m uvicorn app.main:app --reload
-```
-
-### 4. 烧录 ESP32 固件
-用 Arduino IDE 打开 `esp32_firmware/smart_space_control.ino`，修改配置：
-```cpp
-const char* ssid = "YOUR_WIFI_SSID";
-const char* pass = "YOUR_WIFI_PASSWORD";
-const char* mqtt_server = "YOUR_BROKER_IP";
-```
-
-### 5. 打开控制面板
-浏览器访问 `http://localhost:8000` 🎉
-
-## 📡 MQTT 主题
-
-| 主题 | 方向 | 数据格式 |
-|------|------|----------|
-| `esp32/sensors` | ESP32 → Broker | `{"device_id":"esp32_01","temp":25.0,"hum":31.0,"ts":...}` |
-| `esp32/control` | Broker → ESP32 | `{"device_id":"esp32_01","command":"on/off","channel":1}` |
-| `esp32/status` | ESP32 → Broker | `{"device_id":"esp32_01","relay":true,"online":true,"ts":...}` |
-
-## 🔧 API 接口
-
-| 方法 | 路径 | 说明 |
+| 组件 | 引脚 | 备注 |
 |------|------|------|
-| GET | `/api/status` | 系统状态 |
-| GET | `/api/sensors/latest` | 最新传感器数据 |
-| GET | `/api/sensors/history?hours=24` | 历史数据（默认24小时） |
-| POST | `/api/devices/control` | 设备控制（开/关） |
+| ESP32 开发板 | - | 推荐 ESP32-WROOM-32 |
+| DHT11 温湿度传感器 | GPIO21 | 数字信号 |
+| 光敏电阻模块 | GPIO34 (ADC) | 模拟信号 |
+| 光遮断传感器 | GPIO32 | 可替换为 HC-SR501 |
+| 5V 继电器模块 | GPIO27 | 高电平触发 |
+| 有源蜂鸣器 | GPIO25 | 高电平发声 |
+| OLED SSD1306 (128x64) | GPIO18(SDA) / GPIO19(SCL) | I2C 地址 0x3C |
 
-## ⚠️ 常见问题
+## 快速开始
 
-<details>
-<summary>ESP32 连不上 WiFi？</summary>
+### 1. 硬件端（ESP32）
 
-- 只支持 **2.4GHz**，不支持 5GHz
-- 检查密码是否正确
-- 尝试靠近路由器
-</details>
+1. 安装 Arduino IDE 及 ESP32 开发板支持
+2. 安装依赖库：
+   - `PubSubClient` (MQTT)
+   - `DHT sensor library` + `Adafruit Unified Sensor`
+   - `Adafruit SSD1306` + `Adafruit GFX`
+3. 修改 `firmware/smart_space_control.ino` 中的 WiFi 和 MQTT 配置
+4. 编译上传到 ESP32
 
-<details>
-<summary>继电器不动作？</summary>
+### 2. 后端
 
-- 确认 VCC 接的是 VIN(5V)，不是 3.3V
-- 检查 GPIO27 接线是否正确
-- 用万用表测量继电器供电
-</details>
+```bash
+# 安装依赖
+pip install -r requirements.txt
 
-<details>
-<summary>手机热点为什么不行？</summary>
+# 终端1：启动 MQTT Broker
+python local_broker.py
 
-手机热点通常有 **AP 隔离**，设备间无法互相通信。解决方案：
-1. 使用普通路由器
-2. 用 ESP32 自建 AP 模式（代码已支持）
-3. 买个便携路由器（推荐）
-</details>
+# 终端2：启动后端服务
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-## 📚 技术栈
+### 3. 前端
 
-- **固件**: Arduino C++ (PubSubClient + DHT + Adafruit_SSD1306)
-- **Broker**: amqtt (纯 Python MQTT 实现)
-- **后端**: FastAPI + aiosqlite + paho-mqtt
-- **前端**: 原生 HTML/JS + Chart.js
+浏览器访问 http://localhost:8000 即可打开控制面板。
 
-## 🤝 贡献
+## API 接口
 
-欢迎提 Issue 和 PR！
+| 路径 | 方法 | 说明 |
+|------|------|------|
+| `/api/status` | GET | 系统状态（MQTT连接、运行时间、记录数） |
+| `/api/sensors/latest` | GET | 最新一条传感器数据 |
+| `/api/sensors/history?hours=24` | GET | 历史数据（默认24小时） |
+| `/api/devices/status` | GET | 设备在线状态及继电器状态 |
+| `/api/devices/control` | POST | 发送控制指令（继电器开关） |
+| `/api/devices/beep` | POST | 蜂鸣器测试 |
 
-如果觉得有用，请给个 ⭐ Star 支持一下！
+## MQTT 主题
 
-## 📄 License
+| 主题 | 方向 | 内容 |
+|------|------|------|
+| `esp32/sensors` | ESP32 → Broker | 温湿度/光照/人体感应 JSON |
+| `esp32/status` | ESP32 → Broker | 设备在线状态、继电器状态 |
+| `esp32/control` | Broker → ESP32 | 控制指令（继电器/蜂鸣器） |
 
-MIT License - 随便用，记得注明出处就行~
+## 项目结构
 
----
+```
+├── firmware/                    # ESP32 固件源码
+│   └── smart_space_control.ino
+├── app/                         # FastAPI 后端
+│   ├── __init__.py
+│   ├── main.py                  # 主程序 & API 路由
+│   ├── database.py              # SQLite 异步数据库
+│   ├── models.py                # Pydantic 数据模型
+│   └── mqtt_subscriber.py       # MQTT 订阅与发布
+├── frontend/
+│   └── index.html               # 前端控制面板（单文件）
+├── local_broker.py              # 本地 MQTT Broker 启动脚本
+├── requirements.txt             # Python 依赖
+└── README.md
+```
 
-<div align="center">
+## 注意事项
 
-**如果这个项目帮到你了，请给作者一个 ⭐ Star 吧！**
+- ESP32 固件中的 WiFi 密码和 MQTT 服务器 IP 需根据实际环境修改
+- MQTT keepalive 设置为 30 秒，配合 `WiFi.setSleep(false)` 保证连接稳定
+- 后端时间戳使用服务器本地时间，不依赖 ESP32 的 millis()
+- Windows 环境下 MQTT Broker 使用 ProactorEventLoop 避免兼容性问题
 
-Made with ❤️ by [googaga](https://github.com/lmy18837613075)
+## License
 
-</div>
-
----
-
-> 本内容由 Coze AI 生成，请遵循相关法律法规及《人工智能生成合成内容标识办法》使用与传播。
+MIT
