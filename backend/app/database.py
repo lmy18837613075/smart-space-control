@@ -10,7 +10,6 @@ DB_PATH = "data/smart_space.db"
 
 
 async def init_db():
-    """初始化数据库表"""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS sensor_readings (
@@ -32,7 +31,6 @@ async def init_db():
 
 async def save_sensor_reading(device_id, temperature, humidity,
                               light=0, motion=0, timestamp=None):
-    """保存传感器数据"""
     if timestamp is None:
         timestamp = datetime.now().isoformat()
     async with aiosqlite.connect(DB_PATH) as db:
@@ -46,7 +44,6 @@ async def save_sensor_reading(device_id, temperature, humidity,
 
 
 async def get_latest_reading(device_id=None):
-    """获取最新一条传感器数据"""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         if device_id:
@@ -68,7 +65,6 @@ async def get_latest_reading(device_id=None):
 
 
 async def get_sensor_history(hours=24, device_id=None):
-    """获取历史数据"""
     cutoff = (datetime.now() - timedelta(hours=hours)).isoformat()
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -91,7 +87,6 @@ async def get_sensor_history(hours=24, device_id=None):
 
 
 async def get_sensor_count():
-    """获取总数据条数"""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("SELECT COUNT(*) FROM sensor_readings")
         row = await cursor.fetchone()
