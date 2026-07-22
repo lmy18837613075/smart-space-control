@@ -66,9 +66,9 @@ def on_message(client, userdata, msg):
             light = data.get("light", 0)
             motion = data.get("motion", False)
             ts = data.get("timestamp") or data.get("ts", "")
-            timestamp = str(ts) if ts else datetime.now().isoformat()
+            # ESP32 millis()不是真实时间，用服务器时间
+            timestamp = datetime.now().isoformat()
 
-            # 更新设备状态
             if "relay" in data:
                 device_state["relay"] = data["relay"]
             device_state["online"] = True
